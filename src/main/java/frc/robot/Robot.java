@@ -50,7 +50,7 @@ public class Robot extends TimedRobot {
   // drive motors
   WPI_TalonSRX frontLeft = new WPI_TalonSRX(kFrontLeftChannel);
   WPI_TalonSRX rearLeft = new WPI_TalonSRX(kRearLeftChannel);
-  WPI_TalonSRX frontRight = new WPI_TalonSRX(kFrontRightChannel);
+  WPI_TalonSRX frontRight = new WPI_TalonSRX(kFrontRightChannel); // this one sucks!
   WPI_TalonSRX rearRight = new WPI_TalonSRX(kRearRightChannel);
 
 
@@ -75,16 +75,16 @@ public class Robot extends TimedRobot {
   private Timer m_timer = new Timer();
   
   private double[][] instructions = {
-    // {y-axis speed, x-axis speed, rotation speed, seconds}
+    // {x-axis speed, y-axis speed, rotation speed, seconds}
     /**
      * axes (relative to front of robot being north):
-     * x: -1.0 west --> +1.0 east
-     * y: -1.0 south --> +1.0 north
-     * rotation: -1.0 counterclockwise --> +1.0 clockwise
+     * x: -1.0 south --> +1.0 north
+     * y: -1.0 west --> +1.0 east
+     * rotation: -1.0 clockwise --> +1.0 counterclockwise
      */
-    {-0.5, 0.0, 0.0, 3.0}, // drive south at 0.5 speed for 3.0 seconds
-    {0.0, 0.5, 0.1, 2.0}, // drive east at 0.5 speed with 0.1 clockwise rotation speed for 2.0 seconds
-    {-0.25, 0.25, 0.0, 4.5}, // drive south-east at 0.5 (?) speed for 4.5 seconds
+    {-0.5, 0.0, 0.0, 3.0}, // drive west at 0.5 speed for 3.0 seconds
+    {0.0, 0.5, 0.1, 2.0}, // drive north at 0.5 speed with 0.1 counterclockwise rotation speed for 2.0 seconds
+    {-0.25, 0.25, 0.0, 4.5}, // drive north-west at 0.5 (?) speed for 4.5 seconds
   };
 
   private int currentInstruction;
@@ -92,11 +92,6 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
     CameraServer.getInstance().startAutomaticCapture();
-
-    frontLeft.setInverted(true);
-    rearLeft.setInverted(true);
-    frontRight.setInverted(true);
-    rearRight.setInverted(true);
   }
 
   @Override
@@ -109,19 +104,19 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousPeriodic() {
-    double instructionYAxis = 0.0;
     double instructionXAxis = 0.0;
+    double instructionYAxis = 0.0;
     double instructionRotation = 0.0;
     double instructionSeconds = 1.0;
     if (currentInstruction < instructions.length) {
-      instructionYAxis = instructions[currentInstruction][0]; // set y axis value
-      instructionXAxis = instructions[currentInstruction][1]; // set x axis value
+      instructionXAxis = instructions[currentInstruction][0]; // set y axis value
+      instructionYAxis = instructions[currentInstruction][1]; // set x axis value
       instructionRotation = instructions[currentInstruction][2]; // set rotation value
       instructionSeconds = instructions[currentInstruction][3]; // set time for instruction
     }
 
     if (m_timer.get() < instructionSeconds) {
-      m_robotDrive.driveCartesian(instructionYAxis, instructionXAxis, instructionRotation);
+      m_robotDrive.driveCartesian(instructionXAxis, instructionYAxis, instructionRotation);
     } else {
       m_timer.reset();
       currentInstruction++;
@@ -139,7 +134,9 @@ public class Robot extends TimedRobot {
     boolean intakeButton = m_f310.getAButton();
     boolean beltButton = m_f310.getXButton();
     boolean revButton = m_f310.getBumper(Hand.kLeft);
+    boolean fastButton = m_f310.getBumper(Hand.kRight);
     int reverse = 1;
+    double speed = 0.5;
     boolean aimButton = false; // = m_f310.getBButtonPressed(); // disabled for now
     double fireTrigger = m_f310.getTriggerAxis(Hand.kRight);
     int liftPOV = m_f310.getPOV();
@@ -148,21 +145,20 @@ public class Robot extends TimedRobot {
       reverse = -1;
     }
 
-    // uses the left thumbstick X axis for side-to-side movement, left thumbstick Y axis
-    // for forward and backward movement, and right thumbstick X axis for rotation.
-    double leftx = m_f310.getX(Hand.kLeft); // left: -1; centered: 0; right: +1
-    double lefty = -m_f310.getY(Hand.kLeft); // up: +1; centered: 0; down: -1
-    // (due to inverting the sign of the joystick values, which are normally oriented so
-    // that negative is up and positive is down)
-    double rightx = m_f310.getX(Hand.kRight); // left: -1; centered: 0; right: +1
-    m_robotDrive.driveCartesian(Math.pow(leftx, 3)*reverse, Math.pow(lefty, 3)*reverse,
-      Math.pow(rightx, 3)*.5*reverse, 0.0);
-      // the linear -1 to 1 inputs of the joystick are put on a -1 to 1 cubic curve
-      // to create a smoother-feeling control experience when driving the robot around
-      // (for the rotation, the sensitivity is reduced to 50%, so it only goes from
-      // -0.5 to 0.5. this was done because we didn't need the driver to be able to
-      // rotate any faster than 50% of the max speed)
+    if (fastButton) {
+      speed = 1.0;
+    }
 
+    double leftx = m_f310.getX(Hand.kLeft)*speed*reverse;
+    double lefty = -m_f310.getY(Hand.kLeft)*speed*reverse;
+    double rightx = -m_f310.getX(Hand.kRight)*0.6*reverse; // rotation
+    m_robotDrive.driveCartesian(leftx, lefty, rightx, 0.0);
+    if (Math.abs(leftx) + Math.abs(lefty) + Math.abs(rightx) < 0.08) {
+      frontLeft.set(0.05);
+      rearLeft.set(0.05);
+      frontRight.set(-0.05);
+      rearRight.set(-0.05);
+    }
     // intake
     if (intakeButton) {
       m_intake.set(0.3 * reverse);
