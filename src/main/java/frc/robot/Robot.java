@@ -7,8 +7,8 @@
 
 package frc.robot;
 
-import com.ctre.phoenix.motorcontrol.ControlMode;
-import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+// import com.ctre.phoenix.motorcontrol.ControlMode; // disabled, can't find where these are used
+// import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 
@@ -137,7 +137,7 @@ public class Robot extends TimedRobot {
     boolean fastButton = m_f310.getBumper(Hand.kRight);
     int reverse = 1;
     double speed = 0.5;
-    boolean aimButton = false; // = m_f310.getBButtonPressed(); // disabled for now
+    boolean aimButton = m_f310.getBButtonPressed();
     double fireTrigger = m_f310.getTriggerAxis(Hand.kRight);
     int liftPOV = m_f310.getPOV();
 
