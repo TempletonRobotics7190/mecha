@@ -137,7 +137,8 @@ public class Robot extends TimedRobot {
     boolean fastButton = m_f310.getBumper(Hand.kRight);
     int reverse = 1;
     double speed = 0.5;
-    boolean aimButton = m_f310.getBButtonPressed();
+    boolean aimButton = m_f310.getBButton();
+    boolean rangeButton = m_f310.getYButton();
     double fireTrigger = m_f310.getTriggerAxis(Hand.kRight);
     int liftPOV = m_f310.getPOV();
 
@@ -187,11 +188,13 @@ public class Robot extends TimedRobot {
     NetworkTableEntry tx = table.getEntry("tx");
     NetworkTableEntry ty = table.getEntry("ty");
     NetworkTableEntry ta = table.getEntry("ta");
+    NetworkTableEntry tv = table.getEntry("tv");
 
     // read values periodically
     double x = tx.getDouble(0.0);
     double y = ty.getDouble(0.0);
     double area = ta.getDouble(0.0);
+    double v = tv.getDouble(0.0);
 
     // post to smart dashboard periodically
     SmartDashboard.putNumber("LimelightX", x);
@@ -200,19 +203,40 @@ public class Robot extends TimedRobot {
 
     double kP = 0.1;
     double minCommand = 0.05;
+    double steeringAdjust = 0.0;
+    double drivingAdjust = 0.0;
+    double KpDistance = -0.1;
 
-    if (aimButton) {
-      double headingError = -x; // offset from target to crosshair from -29.8 degrees to 29.8 degrees; may need to switch sign
-      double steeringAdjust = 0.0;
-      if (x > 1.0) {
-        steeringAdjust = kP * headingError + minCommand; // may switch sign
-      } else if (x < 1.0) {
-        steeringAdjust = kP * headingError - minCommand; // may switch sign
-      }
-      m_robotDrive.driveCartesian(0.0, 0.0, steeringAdjust);
-
+    if (aimButton && v == 1.0) {
+        double headingError = -x; // offset from target to crosshair from -29.8 degrees to 29.8 degrees; may need to switch sign
+        if (x > 1.0) {
+         steeringAdjust = kP * headingError + minCommand; // may switch sign
+        }   else if (x < 1.0) {
+          steeringAdjust = kP * headingError - minCommand; // may switch sign
+        }
+        m_robotDrive.driveCartesian(0.0, 0.0, steeringAdjust);
       // vertical aiming; we will mount camera at 45 degree angle; positive values bring shooter down
     }
+
+    // Limelight seeking
+    if (aimButton && v == 0.0) {
+
+      if (v == 0.0)
+{
+          // We don't see the target, seek for the target by spinning in place at a safe speed.
+          steeringAdjust = 0.2;
+          m_robotDrive.driveCartesian(0.0, 0.0, steeringAdjust);
+}
+    }
+
+  // Limelight automatic distancing
+  double distanceError = y;
+  if (rangeButton)
+{
+        drivingAdjust = KpDistance * distanceError;
+
+      m_robotDrive.driveCartesian(0.0, drivingAdjust, 0.0);
+      }
 
     // shooting sequence
     if (fireTrigger > 0.75) {
