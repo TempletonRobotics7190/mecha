@@ -136,7 +136,7 @@ public class Robot extends TimedRobot {
     boolean revButton = m_f310.getBumper(Hand.kLeft);
     boolean fastButton = m_f310.getBumper(Hand.kRight);
     int reverse = 1;
-    double speed = 0.5;
+    double speed = 0.25;
     boolean aimButton = m_f310.getBButton();
     boolean rangeButton = m_f310.getYButton();
     double fireTrigger = m_f310.getTriggerAxis(Hand.kRight);
@@ -147,7 +147,7 @@ public class Robot extends TimedRobot {
     }
 
     if (fastButton) {
-      speed = 1.0;
+      speed = 0.5;
     }
 
     double leftx = m_f310.getX(Hand.kLeft)*speed*reverse;
